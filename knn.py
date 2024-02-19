@@ -1,66 +1,95 @@
-# import pandas as pd
-# import matplotlib.pyplot as plt
-
-# df = pd.read_csv('top14.csv', encoding='utf-8')
-
-# def knn(poids, taille):
-#     df['distance'] = (df['Taille'] - taille) ** 2 + (df['Poids'] - poids) ** 2
-#     newdf = df.sort_values(by='distance', ascending=True)
-    
-#     # Sélectionner les 6 joueurs les plus proches
-#     nearest_players = newdf.head(20)
-    
-#     # Créer un graphique de dispersion pour visualiser toutes les distances par rapport aux postes
-#     plt.figure(figsize=(8, 5))
-    
-#     # Tracer tous les joueurs en bleu
-#     plt.scatter(newdf['Poste'], newdf['distance'], color='blue', marker='o', label='Tous les joueurs')
-    
-#     # Tracer les 6 joueurs les plus proches en rouge
-#     plt.scatter(nearest_players['Poste'], nearest_players['distance'], color='red', marker='o', label='6 joueurs les plus proches')
-    
-#     plt.title('Distances des joueurs par rapport au poste')
-#     plt.xlabel('Poste')
-#     plt.ylabel('Distance')
-#     plt.xticks(rotation=45)
-#     plt.legend()
-#     plt.grid(True)
-#     plt.show()
-
-# knn(93, 188)
-
-
-import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.datasets import make_moons
+from collections import Counter
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 
-# Données d'exemple
-x_train , y_train = make_moons(100, noise=0.05, random_state=1)
-x_test , y_test = make_moons(50, noise=0.12, random_state=1)
-k = 2
 
-def plot_knn(X_train, y_train, X_test, k):
-    plt.figure(figsize=(10, 6))
-    plt.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap='coolwarm', label='Training Data')
-    plt.scatter(X_test[:, 0], X_test[:, 1], color='black', marker='x', label='Test Data')
-    plt.xlabel('Feature 1')
-    plt.ylabel('Feature 2')
+def euclidean_distance(x1, x2):
+    distance = np.sqrt(np.sum((x1 - x2) ** 2))
+    return distance
 
-    for i in range(len(X_test)):
-        distances = []
-        for j in range(len(X_train)):
-            distance = np.sqrt(np.sum(np.square(X_test[i] - X_train[j])))
-            distances.append((distance, y_train[j]))
-        distances.sort(key=lambda x: x[0])
-        neighbors = [distances[i][1] for i in range(k)]
-        majority_class = max(set(neighbors), key=neighbors.count)
+class KNN:
+    def __init__(self, k=3):
+        self.k = k
 
-        # plt.annotate(f'Predicted: {majority_class}', xy=(X_test[i][0], X_test[i][1]), xytext=(X_test[i][0]+0.5, X_test[i][1]+0.5),
-        #              arrowprops=dict(facecolor='black', shrink=0.05))
+    def fit(self, X, y):
+        self.X_train = X
+        self.y_train = y
 
-    plt.legend()
-    plt.title('KNN Classification')
-    plt.show()
+    def predict(self, X):
+        predictions = [self._predict(x) for x in X]
+        return predictions
 
-# Utilisation de la fonction pour afficher le graphe
-plot_knn(x_train, y_train, x_test, k)
+    def _predict(self, x):
+        # Calcul de la distance
+        distances = [euclidean_distance(x, x_train) for x_train in self.X_train]
+
+        # Sélection des k plus proches voisins
+        k_indices = np.argsort(distances)[:self.k]
+        k_nearest_labels = [self.y_train[i] for i in k_indices]
+
+        # Vote majoritaire pour la classification
+        most_common = Counter(k_nearest_labels).most_common()
+        return most_common[0][0]
+
+if __name__ == "__main__":
+    iris = datasets.load_iris()
+    X, y = iris.data, iris.target
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1234)
+
+    clf = KNN(k=5)
+    clf.fit(X_train, y_train)
+
+    input_X = []  
+    input_y = []  
+
+    while True:
+        plt.figure()
+        plt.scatter(X[:, 0], X[:, 1], c=y, cmap='viridis', edgecolor='k', s=50, label="Données d'entraînement")
+
+        # Saisie des valeurs pour prédiction
+        input_values = []
+        for i in range(X.shape[1]):
+            value = float(input(f"Entrez la valeur pour la caractéristique {i + 1}: "))
+            input_values.append(value)
+
+        # Prédiction
+        prediction = clf.predict([input_values])[0]
+        print(f"Classe prédite : {prediction}")
+
+        # Ajout des valeurs saisies aux listes
+        input_X.append(input_values)
+        input_y.append(prediction)
+
+        # Convertir input_X en un tableau NumPy
+        input_X_array = np.array(input_X)
+
+        # Affichage des points saisis en rouge
+        plt.scatter(input_X_array[:, 0], input_X_array[:, 1], c='red', marker='x', s=100, label="Saisie utilisateur")
+        plt.xlabel("Longueur du sépale (cm)")
+        plt.ylabel("Largeur du sépale (cm)")
+        plt.title("Scatter Plot : Longueur du sépale vs. Largeur du sépale")
+        plt.legend()
+        plt.show()
+
+"""
+Longueur du sépale (sepal length) :
+Exemple 1 : 5.1
+Exemple 2 : 4.9
+Exemple 3 : 6.0
+Largeur du sépale (sepal width) :
+Exemple 1 : 3.5
+Exemple 2 : 3.0
+Exemple 3 : 3.2
+Longueur du pétale (petal length) :
+Exemple 1 : 1.4
+Exemple 2 : 1.5
+Exemple 3 : 4.7
+Largeur du pétale (petal width) :
+Exemple 1 : 0.2
+Exemple 2 : 0.1
+Exemple 3 : 1.4
+"""

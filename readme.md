@@ -12,3 +12,6 @@
 ### k plus proche voisi :
 
 - 1 semaine apres la rentrée
+
+### https://machinelearningmastery.com/tutorial-to-implement-k-nearest-neighbors-in-python-from-scratch/
+
